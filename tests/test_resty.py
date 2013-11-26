@@ -9,7 +9,7 @@ UnitTest framework for validating the Resty system
 import sys
 import os
 import time
-from unittest2 import TestCase
+from unittest2 import TestCase, skip
 from mock import patch
 import random
 import urllib2
@@ -17,6 +17,7 @@ import json
 from StringIO import StringIO
 from resty.api import RestyAPI, RestApiException, RestApiAuthError
 from resty.auth import RestAuth, RestAuthBasic, RestAuthToken
+from resty.request import request
 
 
 REST_HOST = 'localhost:8080'
@@ -70,22 +71,23 @@ class TestRestyInit(TestCase):
 class TestRestyRootResource(TestCase):
 
     def setUp(self):
-        self.patcher = patch('resty.api.urllib2.urlopen')
+        # self.patcher = patch('resty.request.urllib2.urlopen')
+        self.patcher = patch('urllib2.urlopen')
         self.mock_urlopen = self.patcher.start()
         self.content = """
         {
-            "userprofiles": "http://metrics:8080/api/userprofiles/",
-            "users": "http://metrics:8080/api/users/",
-            "api-token": "http://metrics:8080/api/token/",
-            "comps": "http://metrics:8080/api/components/",
-            "reporttype": "http://metrics:8080/api/reporttypes/",
-            "groups": "http://metrics:8080/api/groups/",
-            "permissions": "http://metrics:8080/api/permissions/",
-            "reportsource": "http://metrics:8080/api/reportsources/",
-            "contenttype": "http://metrics:8080/api/contenttype/",
-            "reports": "http://metrics:8080/api/reports/",
-            "workspace": "http://metrics:8080/api/workspaces/",
-            "release": "http://metrics:8080/api/releases/"
+            "userprofiles": "http://localhost/api/userprofiles/",
+            "users": "http://localhost/api/users/",
+            "api-token": "http://localhost/api/token/",
+            "comps": "http://localhost/api/components/",
+            "reporttype": "http://localhost/api/reporttypes/",
+            "groups": "http://localhost/api/groups/",
+            "permissions": "http://localhost/api/permissions/",
+            "reportsource": "http://localhost/api/reportsources/",
+            "contenttype": "http://localhost/api/contenttype/",
+            "reports": "http://localhost/api/reports/",
+            "workspace": "http://localhost/api/workspaces/",
+            "release": "http://localhost/api/releases/"
         }
         """
         self.mock_urlopen.return_value = mock_response(self.content)
@@ -106,16 +108,75 @@ class TestRestyRootResource(TestCase):
         ]
 
     def test_api_request(self):
-        self.assertEqual(self.api.request(REST_URL).code, 200)
-        self.assertEqual(self.api.request(REST_URL).msg, 'OK')
-        data = json.loads(self.api.request(REST_URL).read())
+        self.assertEqual(request(REST_URL).code, 200)
+        self.assertEqual(request(REST_URL).msg, 'OK')
+        data = json.loads(request(REST_URL).read())
         self.assertEqual(data, json.loads(self.content))
 
     def test_api_discover(self):
         self.api.discover()
-        for item in self.api.resources.keys():
+        for item in self.api.list_resources():
             # self.assertIn(item, expected_resources)
             self.assertTrue(item in self.expected_resources)
+
+
+class TestRestyResourceInstance(TestCase):
+
+    def setUp(self):
+        # self.patcher = patch('resty.request.urllib2.urlopen')
+        self.patcher = patch('urllib2.urlopen')
+        self.mock_urlopen = self.patcher.start()
+        self.content = """
+        {
+            "id": 1, 
+            "url": "http://localhost/api/users/1/", 
+            "profile": "http://localhost/api/userprofiles/1/", 
+            "groups": [], 
+            "username": "tomsawyer", 
+            "first_name": "Tom", 
+            "last_name": "Sawyer", 
+            "email": "Tom.Sawyer@example.com", 
+            "is_staff": true, 
+            "is_active": true, 
+            "is_superuser": false, 
+            "last_login": "2013-11-26T07:15:27Z", 
+            "date_joined": "2012-05-08T21:23:50Z"
+        }
+        """
+        self.mock_urlopen.return_value = mock_response(self.content)
+        self.api = RestyAPI(REST_URL, REST_AUTH_TOKEN)
+        self.expected_resources = [
+            u"userprofiles",
+            u"users",
+            u"api-token",
+            u"comps",
+            u"reporttype",
+            u"groups",
+            u"permissions",
+            u"reportsource",
+            u"contenttype",
+            u"reports",
+            u"workspace",
+            u"release"
+        ]
+
+    @skip("not implemented yet")
+    def test_get_one(self):
+        c = self.api.resource('components')
+        user = c.one(1)
+        self.assertEqual(user.id, 1)
+        self.assertEqual(user.url, 'http://localhost/api/users/1/')
+        self.assertEqual(user.profile, 'http://localhost/api/userprofiles/1/')
+        self.assertEqual(user.groups, [])
+        self.assertEqual(user.username, 'tomsawyer')
+        self.assertEqual(user.first_name, 'Tom')
+        self.assertEqual(user.last_name, 'Sawyer')
+        self.assertEqual(user.email, 'Tom.Sawyer@example.com')
+        self.assertTrue(user.is_staff)
+        self.assertTrue(user.is_active)
+        self.assertFalse(user.is_superuser)
+        self.assertEqual(user.last_login, '2013-11-26T07:15:27Z')
+        self.assertEqual(user.date_joined, '2012-05-08T21:23:50Z')
 
 if __name__ == '__main__':
     print "INFO: Running tests for resty api class!"

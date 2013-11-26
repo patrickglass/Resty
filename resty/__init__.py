@@ -19,3 +19,4 @@ from .exceptions import (
     RestApiServersDown
 )
 from .auth import RestAuthToken
+from .request import request

@@ -10,9 +10,14 @@ Copyright: Copyright 2013 SwissTech Consulting.
 Resource Definition
 """
 
+class ParentResource(object):
+    pass
+
+BASEPARENT = ParentResource()
+
 class RestResource(object):
 
-    def __init__(self, url):
+    def __init__(self, url, parent=BASEPARENT):
         self.meta_url = url
         self.meta_name = None
         self.meta_description = None
@@ -25,9 +30,10 @@ class RestResource(object):
             'PATCH': {},
             'DELETE': {},
         }
+        self.meta_parent = parent
 
     def one(self, pk):
-        pass
+        return RestResource(self.meta_url + str(pk) + '/')
 
     def all(self):
-        pass
+        return self

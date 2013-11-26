@@ -11,21 +11,18 @@ Copyright: Copyright 2013 SwissTech Consulting.
 This class implements a simple rest api framework for interfacing with the
 Server via its REST API.
 """
-import socket
-import httplib
-import urllib2
 import json
 
-from .exceptions import (
+from resty.exceptions import (
     RestApiException,
     RestApiUrlException,
     RestApiAuthError,
     RestApiBadRequest,
     RestApiServersDown
 )
-from .resource import RestResource
-from .auth import RestAuthToken
-
+from resty.resource import RestResource
+from resty.auth import RestAuthToken
+from resty.request import request
 
 class RestyAPI(object):
     """
@@ -68,42 +65,21 @@ class RestyAPI(object):
             self.resources[name] = res
         return res
 
+    def list_resources(self):
+        return self.resources.keys()
+
     def discover(self):
         """
         Will use the baseURL and query the remote server to auto determine
         the resources and the field validation for each resource
         """
-        data = self.request(self.url).read()
+        # Get the global headers and set any extra headers
+        headers = self.headers.copy()
+        headers.update(self.auth.getHeaders())
+
+        data = request(self.url, headers).read()
         resources = json.loads(data)
         for res in resources:
             self.resource(res)
 
 
-    def request(self, url):
-        # Get the global headers and set any extra headers
-        headers = self.headers.copy()
-        headers.update(self.auth.getHeaders())
-
-        # req = urllib2.Request(url, str(headers))
-        # resp = urllib2.urlopen(req)
-        # # print resp.read()
-        # # return resp
-
-        # Perform the url request
-        try:
-            req = urllib2.Request(url, str(headers))
-            resp = urllib2.urlopen(req)
-            # print resp.read()
-            return resp
-        except urllib2.HTTPError as e:
-            if e.code == 403 or e.code == 401:
-                raise RestApiAuthError(e)
-            elif e.code == 400:
-                logging.error("%s: %s" % (e, e.read()))
-                raise RestApiBadRequest(e)
-            else:
-                raise RestApiUrlException(e)
-        except (urllib2.URLError, httplib.HTTPException) as e:
-            raise RestApiUrlException(e)
-        except Exception as e:
-            raise RestApiException(e)
