@@ -1,0 +1,15 @@
+#
+# Resty
+# Author: Patrick Glass <patrickglass@gmail.com>
+# Date Updated: November 25, 2013
+#
+# Description:
+#   This file contains the required python packages
+#   to test the Resty library. This file is
+#   meant to be read by 'pip'
+#   % pip install -r requirements.txt
+
+mock
+coverage
+nose
+unittest2
