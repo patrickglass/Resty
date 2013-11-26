@@ -9,11 +9,8 @@ UnitTest framework for validating the Resty system
 import sys
 import os
 import time
-import unittest
+from unittest2 import TestCase
 from mock import patch
-sys.path.append(os.path.join(os.path.dirname(__file__), "../pmcx/"))
-
-import logging
 import random
 import urllib2
 import json
@@ -32,48 +29,12 @@ def mock_response(content, headers='', url=REST_URL, code=200, msg='OK'):
     Patch the urllib2.urlopen so we always control the output
     This method will now return what is specified in the obj.meta.response
     """
-    resp = urllib2.addinfourl(StringIO(str(content)), headers, url, code)
-    # resp.code = 200
-    resp.msg = msg
     # print "INFO: urllib2.urlopen is being mocked!"
+    resp = urllib2.addinfourl(StringIO(str(content)), headers, url, code)
+    resp.msg = msg
     return resp
 
-
-class TestRestyAuth(unittest.TestCase):
-    def test_auth_init(self):
-        auth = RestAuth()
-        self.assertEqual(auth.getHeaders(), {})
-        self.assertEqual(auth.is_authenticated, False)
-
-    def test_auth_ok(self):
-        auth = RestAuthBasic('Aladdin', 'open sesame')
-        self.assertEqual(auth.getHeaders(), {
-            'Authorization': 'Basic QWxhZGRpbjpvcGVuIHNlc2FtZQ==',
-        })
-        self.assertEqual(auth.is_authenticated, False)
-
-    def test_basicauth_badinput(self):
-        self.assertRaises(ValueError, RestAuthBasic, 'Aladdin', '')
-
-    def test_basicauth_badinput2(self):
-        self.assertRaises(ValueError, RestAuthBasic, '', '')
-
-    def test_basicauth_badinput2(self):
-        self.assertRaises(ValueError, RestAuthBasic)
-
-    def test_tokenauth_ok(self):
-        auth = RestAuthToken('MYSECRETTOKEN')
-        self.assertEqual(auth.getHeaders(), {
-            'Authorization': 'Token MYSECRETTOKEN',
-        })
-        self.assertEqual(auth.is_authenticated, False)
-
-    def test_tokenauth_missing_token(self):
-        self.assertRaises(ValueError, RestAuthToken)
-        self.assertRaises(ValueError, RestAuthToken, '')
-
-
-class TestRestyInit(unittest.TestCase):
+class TestRestyInit(TestCase):
 
     def test_no_args(self):
         self.assertRaises(TypeError, RestyAPI)
@@ -106,10 +67,8 @@ class TestRestyInit(unittest.TestCase):
         self.assertEqual(response.msg, 'OK')
 
 
-class TestRestyRootResource(unittest.TestCase):
+class TestRestyRootResource(TestCase):
 
-    # @patch('resty.api.urllib2.urlopen')
-    # def setUp(self, mock_urlopen):
     def setUp(self):
         self.patcher = patch('resty.api.urllib2.urlopen')
         self.mock_urlopen = self.patcher.start()
@@ -157,9 +116,6 @@ class TestRestyRootResource(unittest.TestCase):
         for item in self.api.resources.keys():
             # self.assertIn(item, expected_resources)
             self.assertTrue(item in self.expected_resources)
-
-
-
 
 if __name__ == '__main__':
     print "INFO: Running tests for resty api class!"
