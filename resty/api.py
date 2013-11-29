@@ -1,13 +1,4 @@
-#!/usr/bin/python -tt
-# -*- coding: utf-8 -*-
 """
-Module Resty
-
-Date: November 25, 2013
-Company: SwissTech Consulting.
-Author: Patrick Glass <patrickglass@gmail.com>
-Copyright: Copyright 2013 SwissTech Consulting.
-
 This class implements a simple rest api framework for interfacing with the
 Server via its REST API.
 """
@@ -21,7 +12,7 @@ from resty.exceptions import (
     RestApiServersDown
 )
 from resty.resource import RestResource
-from resty.auth import RestAuthToken
+from resty.auth import RestAuth, RestAuthToken
 from resty.request import request
 
 class RestyAPI(object):
@@ -31,25 +22,42 @@ class RestyAPI(object):
     validation.
     """
 
-    def __init__(self, baseUrl, token=None):
+    def __init__(self, baseUrl='', token=None):
         self.resources = {}
-        self.setBaseUrl(baseUrl)
-        self.setAuth(RestAuthToken, token=token)
+        self.url = None
+        self.auth = None
+        if baseUrl:
+            self.url = baseUrl
+        if token:
+            self.auth = RestAuthToken(token)
         self.headers = {
             'Content-Type': 'application/json'
         }
 
+    @property
+    def url(self):
+        return self._url
 
-    def setBaseUrl(self, baseUrl):
-        if not baseUrl:
-            raise ValueError("baseUrl must be a full URL to the base API!")
-        self.url = baseUrl.strip('/') + '/'
+    @url.setter
+    def url(self, value):
+        if isinstance(value, basestring):
+            self._url = value.strip('/') + '/'
+        elif value is None:
+            self._url = value
+        else:
+            raise ValueError("url should be a string representing a URL")
+        return self._url
 
+    @property
+    def auth(self):
+        return self._auth
 
-    def setAuth(self, authMethod, **kwargs):
-        if not authMethod:
-            raise ValueError("baseUrl must be a full URL to the base API!")
-        self.auth = authMethod(**kwargs)
+    @auth.setter
+    def auth(self, value):
+        if value is not None and not isinstance(value, RestAuth):
+            raise ValueError("auth must be derrived from RestAuth class!")
+        self._auth = value
+        return self._auth
 
     def resource(self, name):
         """
@@ -75,9 +83,9 @@ class RestyAPI(object):
         """
         # Get the global headers and set any extra headers
         headers = self.headers.copy()
-        headers.update(self.auth.getHeaders())
+        headers.update(self.auth.headers)
 
-        data = request(self.url, headers).read()
+        data = request('GET', self.url, headers=headers).read()
         resources = json.loads(data)
         for res in resources:
             self.resource(res)

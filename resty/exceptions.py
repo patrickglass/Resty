@@ -1,12 +1,4 @@
-#!/usr/bin/env python
 """
-Module Resty
-
-Date: November 25, 2013
-Company: SwissTech Consulting.
-Author: Patrick Glass <patrickglass@gmail.com>
-Copyright: Copyright 2013 SwissTech Consulting.
-
 Error and Exceptions
 """
 
@@ -47,7 +39,7 @@ class RestApiBadRequest(Exception):
 
 class RestApiServersDown(Exception):
     """
-    Raised when the server could not be reached and the 
+    Raised when the server could not be reached and the
     timeout and number of retries limit was reached.
     """
     def __init__(self, value):
@@ -59,7 +51,7 @@ class RestApiServersDown(Exception):
 
 class RestApiAuthError(Exception):
     """
-    Raised when the provided user credentials were invalid or 
+    Raised when the provided user credentials were invalid or
     lacking permissions to access the resource.
     """
     def __init__(self, value):
