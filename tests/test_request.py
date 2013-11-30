@@ -6,7 +6,7 @@ import sys
 import os
 sys.path.append(os.path.join(os.path.dirname(__file__), "../"))
 import time
-from unittest import TestCase, main
+from unittest2 import TestCase, main, skipIf
 from mock import patch
 import random
 import urllib2
@@ -29,14 +29,14 @@ def request_wrapper(method, url, **kwargs):
     # print resp
     # print resp.__dict__
     # print resp.getheaders()
-    print resp.getheader('location')
+    # print resp.getheader('location')
     return resp
 
 
-class TestRestyRequestRootRedirect(TestCase):
+class TestRestySafeRequestRedirectNoSslToSsl(TestCase):
 
     def setUp(self):
-        self.url = REST_URL
+        self.url = 'http://docs.djangoproject.com/en'
 
     def test_request_get(self):
         resp = request_wrapper('get', self.url)
@@ -51,10 +51,10 @@ class TestRestyRequestRootRedirect(TestCase):
         self.assertEqual(resp.status, 301)
 
 
-class TestRestyRequestRootOK(TestCase):
+class TestRestySafeRequestRootOKSSL(TestCase):
 
     def setUp(self):
-        self.url = REST_URL = '/'
+        self.url = 'https://docs.djangoproject.com/en/'
 
     def test_request_get(self):
         resp = request_wrapper('get', self.url)
@@ -66,7 +66,7 @@ class TestRestyRequestRootOK(TestCase):
 
     def test_request_head(self):
         resp = request_wrapper('head', self.url)
-        self.assertEqual(resp.status, 301)
+        self.assertEqual(resp.status, 302)
 
 
 class TestRestyRequestRedirect5(TestCase):
@@ -140,6 +140,7 @@ class TestRestyRequestRedirect50(TestCase):
         self.assertEqual(resp.status, 301)
 
 
+@skipIf(os.environ.get('CI', False), 'This check is not available for Travis-CI')
 class TestRestyRequestRedirectLocalHost(TestCase):
     """Only Get and Options should allow redirection
     The num of restrictions is larger than allowed.
@@ -178,6 +179,7 @@ class TestRestyRequestRedirectLocalHost(TestCase):
         self.assertEqual(resp.status, 301)
 
 
+@skipIf(os.environ.get('CI', False), 'This check is not available for Travis-CI')
 class TestRestyRequestResourceListRedirect(TestCase):
 
     def setUp(self):
@@ -201,6 +203,7 @@ class TestRestyRequestResourceListRedirect(TestCase):
     #     self.assertEqual(resp.status, 500)
 
 
+@skipIf(os.environ.get('CI', False), 'This check is not available for Travis-CI')
 class TestRestyRequestResourceListOK(TestCase):
 
     def setUp(self):
@@ -224,6 +227,7 @@ class TestRestyRequestResourceListOK(TestCase):
     #     self.assertEqual(resp.status, 500)
 
 
+@skipIf(os.environ.get('CI', False), 'This check is not available for Travis-CI')
 class TestRestyRequestResourceInstanceUnauthenticated(TestCase):
 
     def setUp(self):
@@ -258,6 +262,8 @@ class TestRestyRequestResourceInstanceUnauthenticated(TestCase):
         resp = request_wrapper('delete', self.url)
         self.assertEqual(resp.status, 401)
 
+
+@skipIf(os.environ.get('CI', False), 'This check is not available for Travis-CI')
 class TestRestyRequestResourceInstanceAuthenticated(TestCase):
 
     def setUp(self):

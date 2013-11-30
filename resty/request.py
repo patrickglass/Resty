@@ -3,8 +3,9 @@ HTTP Requests
 """
 import socket
 import httplib
+import urlparse
+from urlparse import urljoin
 import urllib
-import urllib2
 
 from resty.exceptions import (
     RestApiException,
@@ -60,12 +61,11 @@ def request(method, url, **kwargs):
       >>> req = requests.request('GET', 'http://httpbin.org/get')
       <Response [200]>
     """
+    resp = None
     method = method.upper()
     if method not in ['GET', 'OPTIONS', 'HEAD',
                       'POST', 'PUT', 'PATCH', 'DELETE']:
         raise ValueError("method must be a valid HTML5 request type!")
-
-    scheme, host, url, z1, z2 = httplib.urlsplit(url)
 
     headers = kwargs.get('headers', {})
     headers.setdefault('User-Agent', 'Python-Resty/1.0')
@@ -74,33 +74,58 @@ def request(method, url, **kwargs):
 
     timeout = kwargs.get('timeout', 60)
 
-    print url
-    if scheme == "http":
-        conn = httplib.HTTPConnection(host, timeout=timeout)
-    elif scheme == "https":
-        conn = httplib.HTTPSConnection(host, timeout=timeout)
-    else:
-        raise IOError("unsupported protocol: %s" % scheme)
-
     params = urllib.urlencode(kwargs.get('data', ''))
 
-    # print headers, params
-    conn.request(method, url, params, headers)
-    resp = conn.getresponse()
-
     if kwargs.get('allow_redirects', False) and method in ['GET', 'OPTIONS']:
-    # if method in ['GET', 'OPTIONS']:
-        # We can perform a redirect if enabled and method is GET OR OPTION
-        redirects = 3
-        while(redirects > 0):
-            if resp.status == 301:
-                scheme, host, url, z1, z2 = httplib.urlsplit(url, resp.getheader('location'))
-                # print url
-                conn.request(method, url, params, headers)
-                resp = conn.getresponse()
-                redirects -= 1
+        # if method in ['GET', 'OPTIONS']:
+        #     We can perform a redirect if enabled and method is GET OR OPTION
+        #     Allow 5 redirects before returning last result
+        redirects = 4
+    else:
+        redirects = 0
+
+    # Looping allows us to follow redirects if enabled. Otherwise
+    # will just get the response and return
+    while(redirects >= 0):
+        # Only allowed to request on the first time or if the result is
+        # a redirect status code
+        if resp is None or resp.status in [301, 302, 303, 307]:
+            # if resp.status in [301, 302, 303]:
+            #     # As per RFC2616 the above redirects must be changed to GET
+            #     method = 'GET'
+            print url
+            # conn.close()
+            if resp:
+                # Upon redirect the resp is set. Use its location instead
+                # We need to support absolute and relative locations
+                new_location = resp.getheader('location')
+                scheme, host, path, z1, z2 = httplib.urlsplit(new_location)
+                if scheme:
+                    print 'was absolute url'
+                    url = path
+                else:
+                    print 'was relative url'
+                    # url = urljoin(url, new_location)
+                    url = new_location
+                print url
             else:
-                break
+                scheme, host, path, z1, z2 = httplib.urlsplit(url)
+
+            print url
+            if scheme == "http":
+                conn = httplib.HTTPConnection(host, timeout=timeout)
+            elif scheme == "https":
+                conn = httplib.HTTPSConnection(host, timeout=timeout)
+            else:
+                raise IOError("unsupported protocol: %s" % scheme)
+
+            conn.request(method, url, params, headers)
+            resp = conn.getresponse()
+
+            redirects -= 1
+        else:
+            break
+
     conn.close()
     return resp
 
